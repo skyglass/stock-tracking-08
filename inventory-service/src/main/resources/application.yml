@@ -1,0 +1,107 @@
+server:
+  error:
+    include-message: always
+    include-binding-errors: always
+  shutdown: graceful
+  forward-headers-strategy: framework
+  tomcat:
+    connection-timeout: 10s
+    keep-alive-timeout: 20s
+    threads:
+      max: 50
+      min-spare: 5
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+  application:
+    name: inventory-service
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+
+  datasource:
+    username: ${app.postgres.user}
+    password: ${app.postgres.password}
+    url: jdbc:postgresql://${app.postgres.host}:${app.postgres.port}/${app.postgres.database}
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  keycloak:
+    server-url: http://localhost:8080
+    server-external-url: http://localhost:8080
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${spring.keycloak.server-external-url}/realms/stock-realm
+          jwk-set-uri: ${spring.keycloak.server-url}/realms/stock-realm/protocol/openid-connect/certs
+
+  cloud:
+    function:
+      definition: handleReserveProductStockRequest;handleDlq
+    stream:
+      default:
+        producer:
+          partition-count: 2
+        consumer:
+          maxAttempts: 8
+          backOffInitialInterval: 150
+          backOffMaxInterval: 2050
+          backOffMultiplier: 2.0
+          defaultRetryable: true
+          retryable-exceptions:
+            org.springframework.dao.DataAccessException: true
+            net.greeta.stock.inventory.domain.exception.NotEnoughStockException: true
+          concurrency: 2
+      bindings:
+        handleReserveProductStockRequest-in-0:
+          destination: ORDER.events
+          group: inventory-service-reserve-stock-group
+        handleDlq-in-0:
+          destination: ORDER.events.dlq
+          group: inventory-service-dlq
+      kafka:
+        binder:
+          autoCreateTopics: true
+          replicationFactor: 2
+          brokers: ${app.kafka.brokers}
+        bindings:
+          handleReserveProductStockRequest-in-0:
+            consumer:
+              enable-dlq: true
+              dlq-name: ORDER.events.dlq
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name},%X{trace_id},%X{span_id}]"
+    console: "%d{yyyy-MM-dd HH:mm:ss} ${LOG_LEVEL_PATTERN:-%5p} %m%n"
+  level:
+    net.greeta.stock: DEBUG
+    org.springframework.cloud.kubernetes: TRACE
+    org.springframework.security: DEBUG
+
+app:
+  postgres:
+    host: stock-postgres
+    port: 5432
+    database: inventorydb
+    user: inventorydbuser
+    password: dbpass
+
+  kafka:
+    brokers: "stock-kafka1:29092,stock-kafka2:29093"
+
+
+openapi:
+  oauthflow:
+    authServerUrl: ${spring.keycloak.server-external-url}
+    realm: stock-realm
+
+jwt:
+  auth:
+    converter:
+      resource-id: stock-app
+      principal-attribute: preferred_username

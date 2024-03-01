@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import net.greeta.stock.common.domain.dto.order.OrderStatus;
@@ -11,6 +12,7 @@ import net.greeta.stock.common.domain.dto.order.OrderStatus;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Order {
 
   private UUID id;

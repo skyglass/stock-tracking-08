@@ -1,11 +1,12 @@
 package net.greeta.stock.order.api;
 
-import net.greeta.stock.common.domain.dto.order.OrderRequest;
-import net.greeta.stock.common.domain.dto.order.Order;
-import net.greeta.stock.order.domain.port.OrderUseCasePort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.greeta.stock.common.domain.dto.order.Order;
+import net.greeta.stock.common.domain.dto.order.OrderDetails;
+import net.greeta.stock.common.domain.dto.order.OrderRequest;
+import net.greeta.stock.order.domain.port.OrderUseCasePort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,5 +29,10 @@ public class OrderController {
   @GetMapping("{orderId}")
   public Order getOrder(@PathVariable UUID orderId) {
     return orderUseCase.getOrder(orderId);
+  }
+
+  @GetMapping("details/{orderId}")
+  public OrderDetails getOrderDetails(@PathVariable UUID orderId) {
+    return orderUseCase.getOrderDetails(orderId);
   }
 }

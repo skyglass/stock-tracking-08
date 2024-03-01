@@ -1,9 +1,11 @@
 package net.greeta.stock.order.domain;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.greeta.stock.common.domain.dto.order.OrderDetails;
 import net.greeta.stock.common.domain.dto.order.OrderRequest;
 import net.greeta.stock.common.domain.dto.order.Order;
 import net.greeta.stock.common.domain.dto.order.OrderStatus;
+import net.greeta.stock.order.common.service.OrderService;
 import net.greeta.stock.order.domain.port.OrderRepositoryPort;
 import net.greeta.stock.order.domain.port.OrderUseCasePort;
 import java.sql.Timestamp;
@@ -24,6 +26,8 @@ public class OrderUseCase implements OrderUseCasePort {
 
   private final OrderRepositoryPort orderRepository;
 
+  private final OrderService orderService;
+
   @Override
   public UUID placeOrder(OrderRequest orderRequest) {
     var order = mapper.convertValue(orderRequest, Order.class);
@@ -42,7 +46,7 @@ public class OrderUseCase implements OrderUseCasePort {
       if (success) {
         order.get().setStatus(OrderStatus.COMPLETED);
       } else {
-        order.get().setStatus(OrderStatus.CANCELED);
+        order.get().setStatus(OrderStatus.CANCELLED);
       }
       orderRepository.saveOrder(order.get());
     }
@@ -52,5 +56,10 @@ public class OrderUseCase implements OrderUseCasePort {
   public Order getOrder(UUID orderId) {
     return orderRepository.findOrderById(orderId).orElseThrow(
             () -> new RuntimeException("Order with id %s not found".formatted(orderId)));
+  }
+
+  @Override
+  public OrderDetails getOrderDetails(UUID orderId) {
+    return orderService.getOrderDetails(orderId).block();
   }
 }

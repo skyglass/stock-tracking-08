@@ -13,14 +13,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -110,7 +108,7 @@ public class OrderProcessingConcurrencyE2eTest extends E2eTest {
 
         Boolean orderStockNotApproved =  RetryHelper.retry(() -> {
             var result = orderTestHelper.getOrder(notApprovedOrderId, counter);
-            return Objects.equals(OrderStatus.CANCELED, result.getStatus());
+            return Objects.equals(OrderStatus.CANCELLED, result.getStatus());
         });
 
         assertTrue(orderStockNotApproved);

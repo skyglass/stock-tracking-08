@@ -30,3 +30,13 @@ CREATE TABLE message_log (
      id UUID PRIMARY KEY,
      received_at TIMESTAMP NOT NULL
 );
+
+DROP TABLE IF EXISTS order_workflow_action;
+
+CREATE TABLE order_workflow_action (
+    id         uuid PRIMARY KEY,
+    order_id   uuid NOT NULL,
+    action     character varying COLLATE pg_catalog."default" NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    CONSTRAINT workflow_action_fk FOREIGN KEY (order_id) REFERENCES orders (order_id)
+);

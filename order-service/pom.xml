@@ -17,6 +17,10 @@
       <artifactId>common-domain</artifactId>
     </dependency>
     <dependency>
+      <groupId>net.greeta.stock</groupId>
+      <artifactId>common-orchestrator</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>

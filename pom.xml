@@ -27,6 +27,7 @@
 
     <modules>
         <module>common-domain</module>
+        <module>common-orchestrator</module>
         <module>customer-service</module>
         <module>inventory-service</module>
         <module>order-service</module>
@@ -44,7 +45,7 @@
             </dependency>
             <dependency>
                 <groupId>net.greeta.stock</groupId>
-                <artifactId>orchestrator-common</artifactId>
+                <artifactId>common-orchestrator</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

@@ -1,5 +1,6 @@
 package net.greeta.stock.order.domain.port;
 
+import net.greeta.stock.common.domain.dto.order.OrderDetails;
 import net.greeta.stock.common.domain.dto.order.OrderRequest;
 import net.greeta.stock.common.domain.dto.order.Order;
 
@@ -12,5 +13,7 @@ public interface OrderUseCasePort {
   void updateOrderStatus(UUID orderId, boolean success);
 
   Order getOrder(UUID orderId);
+
+  OrderDetails getOrderDetails(UUID orderId);
 
 }

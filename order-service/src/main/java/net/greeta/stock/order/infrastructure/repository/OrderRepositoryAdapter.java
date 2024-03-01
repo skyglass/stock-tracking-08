@@ -3,6 +3,7 @@ package net.greeta.stock.order.infrastructure.repository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.greeta.stock.common.domain.dto.order.Order;
+import net.greeta.stock.common.domain.dto.order.OrderStatus;
 import net.greeta.stock.order.domain.port.OrderRepositoryPort;
 import net.greeta.stock.order.infrastructure.message.outbox.OutBox;
 import net.greeta.stock.order.infrastructure.message.outbox.OutBoxRepository;
@@ -30,9 +31,16 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
   }
 
   @Override
-  public void saveOrder(Order order) {
+  public Optional<Order> findOrderByIdAndStatus(UUID orderId, OrderStatus orderStatus) {
+    return orderJpaRepository
+            .findByIdAndStatus(orderId, orderStatus)
+            .map(orderEntity -> mapper.convertValue(orderEntity, Order.class));
+  }
+
+  @Override
+  public Order saveOrder(Order order) {
     var entity = mapper.convertValue(order, OrderEntity.class);
-    orderJpaRepository.save(entity);
+    return mapper.convertValue(orderJpaRepository.save(entity), Order.class);
   }
 
   @Override

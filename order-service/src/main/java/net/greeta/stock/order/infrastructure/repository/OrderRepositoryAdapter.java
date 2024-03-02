@@ -2,15 +2,16 @@ package net.greeta.stock.order.infrastructure.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.greeta.stock.common.domain.dto.AggregateType;
 import net.greeta.stock.common.domain.dto.order.Order;
 import net.greeta.stock.common.domain.dto.order.OrderStatus;
+import net.greeta.stock.common.domain.dto.WorkflowAction;
 import net.greeta.stock.order.domain.port.OrderRepositoryPort;
 import net.greeta.stock.order.infrastructure.message.outbox.OutBox;
 import net.greeta.stock.order.infrastructure.message.outbox.OutBoxRepository;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import net.greeta.stock.order.infrastructure.message.EventHandlerAdapter;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -48,8 +49,8 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     var outbox =
         OutBox.builder()
             .aggregateId(order.getId())
-            .aggregateType(EventHandlerAdapter.ORDER)
-            .type(EventHandlerAdapter.ORDER_CREATED)
+            .aggregateType(AggregateType.ORDER)
+            .type(WorkflowAction.ORDER_CREATED)
             .payload(mapper.convertValue(order, JsonNode.class))
             .build();
     outBoxRepository.save(outbox);

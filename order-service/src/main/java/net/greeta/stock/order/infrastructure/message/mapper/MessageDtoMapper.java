@@ -1,8 +1,8 @@
 package net.greeta.stock.order.infrastructure.message.mapper;
 
 import net.greeta.stock.common.domain.dto.order.Order;
-import net.greeta.stock.common.messages.inventory.InventoryRequest;
-import net.greeta.stock.common.messages.payment.PaymentRequest;
+import net.greeta.stock.common.domain.workflow.messages.inventory.InventoryRequest;
+import net.greeta.stock.common.domain.workflow.messages.payment.PaymentRequest;
 
 import java.util.UUID;
 

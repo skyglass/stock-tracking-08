@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import net.greeta.stock.common.domain.dto.order.WorkflowAction;
+import net.greeta.stock.common.domain.dto.WorkflowAction;
 import org.springframework.data.annotation.Id;
 
 import java.time.Instant;

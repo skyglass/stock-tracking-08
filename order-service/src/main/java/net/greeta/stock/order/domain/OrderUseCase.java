@@ -2,13 +2,13 @@ package net.greeta.stock.order.domain;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.greeta.stock.common.domain.dto.order.*;
-import net.greeta.stock.common.domain.dto.WorkflowAction;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
 import net.greeta.stock.order.domain.port.WorkflowActionPort;
-import net.greeta.stock.order.domain.service.OrderService;
 import net.greeta.stock.order.domain.port.OrderRepositoryPort;
 import net.greeta.stock.order.domain.port.OrderUseCasePort;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +25,6 @@ public class OrderUseCase implements OrderUseCasePort {
 
   private final OrderRepositoryPort orderRepository;
 
-  private final OrderService orderService;
-
   private final WorkflowActionPort workflowAction;
 
   @Override
@@ -37,43 +35,45 @@ public class OrderUseCase implements OrderUseCasePort {
     order.setStatus(OrderStatus.PENDING);
     order.setId(UUID.randomUUID());
     orderRepository.saveOrder(order);
-    orderRepository.exportOutBoxEvent(order);
-    workflowAction.track(order.getId(), WorkflowAction.ORDER_CREATED);
+    workflowAction.track(order.getId(), EventType.INVENTORY_REQUEST_INITIATED);
+    orderRepository.exportOutBoxEvent(order, EventType.INVENTORY_REQUEST_INITIATED);
     return order.getId();
   }
 
   @Override
-  @Transactional
-  public void updateOrderStatus(UUID orderId, WorkflowAction action, boolean success) {
-    var order = orderRepository.findOrderById(orderId);
-    if (order.isPresent()) {
-      if (success) {
-        order.get().setStatus(OrderStatus.COMPLETED);
-      } else {
-        order.get().setStatus(OrderStatus.CANCELLED);
-      }
-      orderRepository.saveOrder(order.get());
-      workflowAction.track(orderId, action);
-    }
+  public void updateOrderStatus(Order order, OrderStatus orderStatus) {
+    order.setStatus(orderStatus);
+    orderRepository.saveOrder(order);
   }
 
   @Override
   @Transactional
-  public void trackAction(UUID orderId, WorkflowAction action) {
+  public void updateOrderStatus(UUID orderId, EventType action, boolean success) {
     var order = orderRepository.findOrderById(orderId);
-    if (order.isPresent()) {
-      workflowAction.track(orderId, action);
+    if (success) {
+      order.setStatus(OrderStatus.COMPLETED);
+    } else {
+      order.setStatus(OrderStatus.CANCELLED);
     }
+    orderRepository.saveOrder(order);
+    workflowAction.track(orderId, action);
+  }
+
+  @Override
+  @Transactional
+  public void trackAction(UUID orderId, EventType action) {
+    workflowAction.track(orderId, action);
   }
 
   @Override
   public Order getOrder(UUID orderId) {
-    return orderRepository.findOrderById(orderId).orElseThrow(
-            () -> new RuntimeException("Order with id %s not found".formatted(orderId)));
+    return orderRepository.findOrderById(orderId);
   }
 
   @Override
   public OrderDetails getOrderDetails(UUID orderId) {
-    return orderService.getOrderDetails(orderId);
+    Order order = orderRepository.findOrderById(orderId);
+    List<OrderWorkflowAction> actions = workflowAction.retrieve(orderId);
+    return new OrderDetails(order, actions);
   }
 }

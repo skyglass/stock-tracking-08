@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.greeta.stock.common.domain.dto.AggregateType;
-import net.greeta.stock.common.domain.dto.WorkflowAction;
+import net.greeta.stock.common.domain.dto.workflow.AggregateType;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
 import net.greeta.stock.inventory.domain.PlacedOrderEvent;
 import net.greeta.stock.inventory.domain.port.ProductUseCasePort;
 import net.greeta.stock.inventory.infrastructure.message.log.MessageLog;
@@ -42,7 +42,7 @@ public class EventHandlerDelegate {
         log.debug("EventHandlerAdapter.handleReserveProductStockRequest: Started processing message {}", messageId);
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
             var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            if (eventType == WorkflowAction.PAYMENT_PROCESSED) {
+            if (eventType == EventType.INVENTORY_REQUEST_INITIATED) {
                 var placedOrderEvent = deserialize(event.getPayload());
 
                 log.debug("Start process reserve product stock {}", placedOrderEvent);
@@ -52,9 +52,9 @@ public class EventHandlerDelegate {
                 outbox.setPayload(mapper.convertValue(placedOrderEvent, JsonNode.class));
 
                 if (productUseCase.reserveProduct(placedOrderEvent)) {
-                    outbox.setType(WorkflowAction.INVENTORY_DEDUCTED);
+                    outbox.setType(EventType.INVENTORY_DEDUCTED);
                 } else {
-                    outbox.setType(WorkflowAction.INVENTORY_DECLINED);
+                    outbox.setType(EventType.INVENTORY_DECLINED);
                 }
 
                 outBoxRepository.save(outbox);
@@ -77,7 +77,7 @@ public class EventHandlerDelegate {
             outbox.setAggregateId(placedOrderEvent.id());
             outbox.setAggregateType(AggregateType.PRODUCT);
             outbox.setPayload(mapper.convertValue(placedOrderEvent, JsonNode.class));
-            outbox.setType(WorkflowAction.INVENTORY_DECLINED);
+            outbox.setType(EventType.INVENTORY_DECLINED);
 
             outBoxRepository.save(outbox);
             log.debug("Done failed process reserve product stock {}", placedOrderEvent);
@@ -96,13 +96,13 @@ public class EventHandlerDelegate {
         return placedOrderEvent;
     }
 
-    private WorkflowAction getHeaderAsEnum(MessageHeaders headers, String name) {
+    private EventType getHeaderAsEnum(MessageHeaders headers, String name) {
         var value = headers.get(name, byte[].class);
         if (Objects.isNull(value)) {
             throw new IllegalArgumentException(
                     String.format("Expected record header %s not present", name));
         }
         String stringResult = new String(value, StandardCharsets.UTF_8);
-        return WorkflowAction.valueOf(stringResult);
+        return EventType.valueOf(stringResult);
     }
 }

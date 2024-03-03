@@ -5,8 +5,8 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Objects;
 
-import net.greeta.stock.common.domain.dto.AggregateType;
-import net.greeta.stock.common.domain.dto.WorkflowAction;
+import net.greeta.stock.common.domain.dto.workflow.AggregateType;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
 import net.greeta.stock.order.domain.PlacedOrderEvent;
 import net.greeta.stock.order.domain.port.OrderUseCasePort;
 import org.springframework.messaging.Message;
@@ -44,18 +44,18 @@ public class EventHandlerDelegate {
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
             var placedOrderEvent = deserialize(event.getPayload());
             var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            if (eventType == WorkflowAction.PAYMENT_PROCESSED) {
+            if (eventType == EventType.PAYMENT_PROCESSED) {
                 var outbox = OutBox.builder()
                         .aggregateId(placedOrderEvent.id())
                         .payload(mapper.convertValue(placedOrderEvent, JsonNode.class))
                         .aggregateType(AggregateType.ORDER)
-                        .type(WorkflowAction.PAYMENT_PROCESSED)
+                        .type(EventType.PAYMENT_PROCESSED)
                         .build();
                 outBoxRepository.save(outbox);
-                orderUseCase.trackAction(placedOrderEvent.id(), WorkflowAction.PAYMENT_PROCESSED);
-            } else if (eventType == WorkflowAction.PAYMENT_DECLINED) {
+                orderUseCase.trackAction(placedOrderEvent.id(), EventType.PAYMENT_PROCESSED);
+            } else if (eventType == EventType.PAYMENT_DECLINED) {
                 orderUseCase.updateOrderStatus(placedOrderEvent.id(),
-                        WorkflowAction.PAYMENT_DECLINED, false);
+                        EventType.PAYMENT_DECLINED, false);
             }
 
             // Marked message is processed
@@ -69,18 +69,18 @@ public class EventHandlerDelegate {
         if (Objects.nonNull(messageId) && !messageLogRepository.existsById(messageId)) {
             var placedOrderEvent = deserialize(event.getPayload());
             var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            if (eventType == WorkflowAction.INVENTORY_DEDUCTED) {
-                orderUseCase.updateOrderStatus(placedOrderEvent.id(), WorkflowAction.INVENTORY_DEDUCTED, true);
-            } else if (eventType == WorkflowAction.INVENTORY_DECLINED) {
-                orderUseCase.updateOrderStatus(placedOrderEvent.id(), WorkflowAction.INVENTORY_DECLINED, false);
+            if (eventType == EventType.INVENTORY_DEDUCTED) {
+                orderUseCase.updateOrderStatus(placedOrderEvent.id(), EventType.INVENTORY_DEDUCTED, true);
+            } else if (eventType == EventType.INVENTORY_DECLINED) {
+                orderUseCase.updateOrderStatus(placedOrderEvent.id(), EventType.INVENTORY_DECLINED, false);
                 var outbox = OutBox.builder()
                         .aggregateId(placedOrderEvent.id())
                         .aggregateType(AggregateType.ORDER)
-                        .type(WorkflowAction.PAYMENT_REFUND_INITIATED)
+                        .type(EventType.PAYMENT_REFUND_INITIATED)
                         .payload(mapper.convertValue(placedOrderEvent, JsonNode.class))
                         .build();
                 outBoxRepository.save(outbox);
-                orderUseCase.trackAction(placedOrderEvent.id(), WorkflowAction.PAYMENT_REFUND_INITIATED);
+                orderUseCase.trackAction(placedOrderEvent.id(), EventType.PAYMENT_REFUND_INITIATED);
             }
 
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
@@ -97,13 +97,13 @@ public class EventHandlerDelegate {
         return placedOrderEvent;
     }
 
-    private WorkflowAction getHeaderAsEnum(MessageHeaders headers, String name) {
+    private EventType getHeaderAsEnum(MessageHeaders headers, String name) {
         var value = headers.get(name, byte[].class);
         if (Objects.isNull(value)) {
             throw new IllegalArgumentException(
                     String.format("Expected record header %s not present", name));
         }
         String stringResult = new String(value, StandardCharsets.UTF_8);
-        return WorkflowAction.valueOf(stringResult);
+        return EventType.valueOf(stringResult);
     }
 }

@@ -1,7 +1,8 @@
 package net.greeta.stock.order.infrastructure.mapper;
 
 import net.greeta.stock.common.domain.dto.order.*;
-import net.greeta.stock.common.domain.dto.WorkflowAction;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
+import net.greeta.stock.common.domain.dto.order.OrderWorkflowAction;
 
 import java.time.Instant;
 import java.util.List;
@@ -19,7 +20,7 @@ public class EntityDtoMapper {
                             .build();
     }
 
-    public static OrderWorkflowAction toOrderWorkflowAction(UUID orderId, WorkflowAction action) {
+    public static OrderWorkflowAction toOrderWorkflowAction(UUID orderId, EventType action) {
         return OrderWorkflowAction.builder()
                                   .orderId(orderId)
                                   .action(action)

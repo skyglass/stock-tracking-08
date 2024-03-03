@@ -1,8 +1,8 @@
-package net.greeta.stock.order.infrastructure.service;
+package net.greeta.stock.order.domain;
 
 import lombok.RequiredArgsConstructor;
 import net.greeta.stock.common.domain.dto.order.OrderWorkflowAction;
-import net.greeta.stock.common.domain.dto.WorkflowAction;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
 import net.greeta.stock.order.infrastructure.mapper.EntityDtoMapper;
 import net.greeta.stock.order.domain.port.WorkflowActionPort;
 import net.greeta.stock.order.infrastructure.repository.OrderWorkflowActionRepositoryAdapter;
@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class WorkflowActionAdapter implements WorkflowActionPort {
+public class WorkflowActionUseCase implements WorkflowActionPort {
 
     private final OrderWorkflowActionRepositoryAdapter repository;
 
@@ -23,7 +23,7 @@ public class WorkflowActionAdapter implements WorkflowActionPort {
     }
 
     @Override
-    public void track(UUID orderId, WorkflowAction action) {
+    public void track(UUID orderId, EventType action) {
         this.repository.save(EntityDtoMapper.toOrderWorkflowAction(orderId, action));
     }
 }

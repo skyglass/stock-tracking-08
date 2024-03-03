@@ -27,7 +27,6 @@
 
     <modules>
         <module>common-domain</module>
-        <module>common-orchestrator</module>
         <module>customer-service</module>
         <module>inventory-service</module>
         <module>order-service</module>
@@ -43,12 +42,6 @@
                 <artifactId>common-domain</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>net.greeta.stock</groupId>
-                <artifactId>common-orchestrator</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
 
             <dependency>
                 <groupId>org.springframework.cloud</groupId>

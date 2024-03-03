@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import net.greeta.stock.common.domain.dto.WorkflowAction;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
 import org.springframework.data.annotation.Id;
 
 import java.time.Instant;
@@ -19,7 +19,7 @@ public class OrderWorkflowActionEntity {
     @Id
     private UUID id;
     private UUID orderId;
-    private WorkflowAction action;
+    private EventType action;
     private Instant createdAt;
 
 }

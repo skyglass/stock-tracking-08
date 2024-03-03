@@ -3,8 +3,8 @@ package net.greeta.stock.inventory.infrastructure.message.outbox;
 import java.util.UUID;
 
 import jakarta.persistence.*;
-import net.greeta.stock.common.domain.dto.AggregateType;
-import net.greeta.stock.common.domain.dto.WorkflowAction;
+import net.greeta.stock.common.domain.dto.workflow.AggregateType;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
 import org.hibernate.annotations.Type;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,7 +33,7 @@ public class OutBox {
 
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
-  private WorkflowAction type;
+  private EventType type;
 
   @Type(JsonType.class)
   @Column(columnDefinition = "json")

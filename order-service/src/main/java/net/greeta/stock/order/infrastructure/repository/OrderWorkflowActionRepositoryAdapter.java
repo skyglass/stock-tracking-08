@@ -3,7 +3,7 @@ package net.greeta.stock.order.infrastructure.repository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import net.greeta.stock.common.domain.dto.order.OrderWorkflowAction;
-import net.greeta.stock.common.domain.dto.WorkflowAction;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
 import net.greeta.stock.order.domain.port.OrderWorkflowActionRepositoryPort;
 import org.springframework.stereotype.Repository;
 
@@ -20,7 +20,7 @@ public class OrderWorkflowActionRepositoryAdapter implements OrderWorkflowAction
     private final OrderWorkflowActionJpaRepository orderWorkflowActionJpaRepository;
 
     @Override
-    public Boolean existsByOrderIdAndAction(UUID orderId, WorkflowAction action) {
+    public Boolean existsByOrderIdAndAction(UUID orderId, EventType action) {
         return orderWorkflowActionJpaRepository.existsByOrderIdAndAction(orderId, action);
     }
 

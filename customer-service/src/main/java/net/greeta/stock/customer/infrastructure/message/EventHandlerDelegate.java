@@ -5,8 +5,8 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Objects;
 
-import net.greeta.stock.common.domain.dto.AggregateType;
-import net.greeta.stock.common.domain.dto.WorkflowAction;
+import net.greeta.stock.common.domain.dto.workflow.AggregateType;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
 import net.greeta.stock.customer.domain.port.CustomerUseCasePort;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
@@ -43,7 +43,7 @@ public class EventHandlerDelegate {
         var messageId = event.getHeaders().getId();
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
             var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            if (eventType == WorkflowAction.ORDER_CREATED) {
+            if (eventType == EventType.PAYMENT_REQUEST_INITIATED) {
                 var placedOrderEvent = deserialize(event.getPayload());
 
                 log.debug("Start process reserve customer balance {}", placedOrderEvent);
@@ -53,9 +53,9 @@ public class EventHandlerDelegate {
                 outbox.setAggregateType(AggregateType.CUSTOMER);
 
                 if (customerUseCasePort.reserveBalance(placedOrderEvent)) {
-                    outbox.setType(WorkflowAction.PAYMENT_PROCESSED);
+                    outbox.setType(EventType.PAYMENT_PROCESSED);
                 } else {
-                    outbox.setType(WorkflowAction.PAYMENT_DECLINED);
+                    outbox.setType(EventType.PAYMENT_DECLINED);
                 }
 
                 // Exported event into outbox table
@@ -72,7 +72,7 @@ public class EventHandlerDelegate {
         var messageId = event.getHeaders().getId();
         if (Objects.nonNull(messageId) && !messageLogRepository.existsById(messageId)) {
             var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            if (eventType == WorkflowAction.PAYMENT_REFUND_INITIATED) {
+            if (eventType == EventType.PAYMENT_REFUND_INITIATED) {
                 var placedOrderEvent = deserialize(event.getPayload());
 
                 log.debug("Start process compensate customer balance {}", placedOrderEvent);
@@ -94,13 +94,13 @@ public class EventHandlerDelegate {
         return placedOrderEvent;
     }
 
-    private WorkflowAction getHeaderAsEnum(MessageHeaders headers, String name) {
+    private EventType getHeaderAsEnum(MessageHeaders headers, String name) {
         var value = headers.get(name, byte[].class);
         if (Objects.isNull(value)) {
             throw new IllegalArgumentException(
                     String.format("Expected record header %s not present", name));
         }
         String stringResult = new String(value, StandardCharsets.UTF_8);
-        return WorkflowAction.valueOf(stringResult);
+        return EventType.valueOf(stringResult);
     }
 }

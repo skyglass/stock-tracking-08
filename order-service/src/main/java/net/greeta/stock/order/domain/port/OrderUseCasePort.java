@@ -22,4 +22,6 @@ public interface OrderUseCasePort {
 
   OrderDetails getOrderDetails(UUID orderId);
 
+  void exportOutBoxEvent(Order order, EventType eventType);
+
 }

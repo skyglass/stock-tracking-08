@@ -30,4 +30,20 @@ public enum EventType {
         return stepType;
     }
 
+    public boolean isRequest() {
+        return requestType == RequestType.ACTION;
+    }
+
+    public boolean isCompensateRequest() {
+        return requestType == RequestType.COMPENSATE;
+    }
+
+    public boolean isSuccessResponse() {
+        return responseType == ResponseType.SUCCESS;
+    }
+
+    public boolean isFailureResponse() {
+        return responseType == ResponseType.FAILURE;
+    }
+
 }

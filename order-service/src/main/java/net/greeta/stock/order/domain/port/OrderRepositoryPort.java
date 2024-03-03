@@ -15,5 +15,4 @@ public interface OrderRepositoryPort {
 
   Order saveOrder(Order order);
 
-  void exportOutBoxEvent(Order order, EventType eventType);
 }

@@ -18,41 +18,4 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentStep extends SagaStep {
 
-    private final ObjectMapper mapper;
-
-    private final OrderUseCasePort orderUseCase;
-
-    private final OutBoxRepository outBoxRepository;
-
-    private final OrderRepositoryPort orderRepository;
-
-    @Override
-    protected void onRequest(Order order) {
-
-    }
-
-    @Override
-    protected void onCompensate(Order order) {
-
-    }
-
-    @Override
-    protected void onSuccess(Order order) {
-
-    }
-
-    @Override
-    protected void onFailure(Order order) {
-
-    }
-
-    @Override
-    public void setOrderStatus(Order order, OrderStatus orderStatus) {
-        orderUseCase.updateOrderStatus(order, orderStatus);
-    }
-
-    @Override
-    public void trackAction(Order order, EventType action) {
-        orderUseCase.trackAction(order.getId(), action);
-    }
 }

@@ -3,10 +3,13 @@ package net.greeta.stock.order.infrastructure.orchestrator;
 import net.greeta.stock.common.domain.dto.order.Order;
 import net.greeta.stock.common.domain.dto.order.OrderStatus;
 import net.greeta.stock.common.domain.dto.workflow.EventType;
-
-import java.util.UUID;
+import net.greeta.stock.order.domain.port.OrderUseCasePort;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public abstract class SagaStep {
+
+    @Autowired
+    private OrderUseCasePort orderUseCase;
 
     private SagaStep previousStep;
 
@@ -24,22 +27,23 @@ public abstract class SagaStep {
 
     private EventType failureAction;
 
-    protected abstract void setOrderStatus(Order order, OrderStatus orderStatus);
-
-    protected abstract void trackAction(Order order, EventType action);
-
-    protected abstract void onRequest(Order order);
-
-    protected abstract void onCompensate(Order order);
-
-    protected abstract void onSuccess(Order order);
-
-    protected abstract void onFailure(Order order);
+    public void handleEvent(Order order, EventType eventType) {
+        if (eventType.isRequest() && eventType == requestAction) {
+            handleRequest(order);
+        } else if (eventType.isCompensateRequest() && eventType == compensateAction) {
+            handleCompensateRequest(order);
+        } else if (eventType.isSuccessResponse() && eventType == successAction) {
+            handleSuccessResponse(order);
+        } else if (eventType.isFailureResponse() && eventType == failureAction) {
+            handleFailureResponse(order);
+        }
+    }
 
     public void handleRequest(Order order) {
         if (requestAction != null) {
             trackAction(order, requestAction);
             onRequest(order);
+            orderUseCase.exportOutBoxEvent(order, requestAction);
         }
     }
 
@@ -47,6 +51,7 @@ public abstract class SagaStep {
         if (compensateAction != null) {
             trackAction(order, compensateAction);
             onCompensate(order);
+            orderUseCase.exportOutBoxEvent(order, compensateAction);
         }
     }
 
@@ -65,14 +70,39 @@ public abstract class SagaStep {
 
     public void handleFailureResponse(Order order) {
         if (failureAction != null) {
+            trackAction(order, failureAction);
             onFailure(order);
             if (failureStatus != null) {
-                setFailureStatus(failureStatus);
+                setFailureResponseStatus(failureStatus);
             }
             if (this.previousStep != null) {
                 this.previousStep.handleCompensateRequest(order);
             }
         }
+    }
+
+    protected void onRequest(Order order) {
+
+    }
+
+    protected void onCompensate(Order order) {
+
+    }
+
+    protected void onSuccess(Order order) {
+
+    }
+
+    protected void onFailure(Order order) {
+
+    }
+
+    private void setOrderStatus(Order order, OrderStatus orderStatus) {
+        orderUseCase.updateOrderStatus(order, orderStatus);
+    }
+
+    private void trackAction(Order order, EventType action) {
+        orderUseCase.trackAction(order.getId(), action);
     }
 
     public void setPreviousStep(SagaStep previousStep) {
@@ -83,11 +113,11 @@ public abstract class SagaStep {
         this.nextStep = nextStep;
     }
 
-    public void setSuccessStatus(OrderStatus orderStatus) {
+    public void setSuccessResponseStatus(OrderStatus orderStatus) {
         this.successStatus = successStatus;
     }
 
-    public void setFailureStatus(OrderStatus orderStatus) {
+    public void setFailureResponseStatus(OrderStatus orderStatus) {
         this.failureStatus = failureStatus;
     }
 
@@ -95,15 +125,15 @@ public abstract class SagaStep {
         this.requestAction = requestAction;
     }
 
-    public void setCompensateAction(EventType compensateAction) {
+    public void setCompensateRequestAction(EventType compensateAction) {
         this.compensateAction = compensateAction;
     }
 
-    public void setSuccessAction(EventType successAction) {
+    public void setSuccessResponseEvent(EventType successAction) {
         this.successAction = successAction;
     }
 
-    public void setFailureAction(EventType failureAction) {
+    public void setFailureResponseEvent(EventType failureAction) {
         this.failureAction = failureAction;
     }
 

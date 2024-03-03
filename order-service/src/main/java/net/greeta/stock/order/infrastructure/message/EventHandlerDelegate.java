@@ -9,6 +9,7 @@ import net.greeta.stock.common.domain.dto.workflow.AggregateType;
 import net.greeta.stock.common.domain.dto.workflow.EventType;
 import net.greeta.stock.order.domain.PlacedOrderEvent;
 import net.greeta.stock.order.domain.port.OrderUseCasePort;
+import net.greeta.stock.order.infrastructure.orchestrator.SagaOrchestrator;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
@@ -32,11 +33,9 @@ public class EventHandlerDelegate {
 
     private final ObjectMapper mapper;
 
-    private final OrderUseCasePort orderUseCase;
-
     private final MessageLogRepository messageLogRepository;
 
-    private final OutBoxRepository outBoxRepository;
+    private final SagaOrchestrator sagaOrchestrator;
 
     @Transactional
     public void reserveCustomerBalanceStage(Message<String> event) {
@@ -44,21 +43,7 @@ public class EventHandlerDelegate {
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
             var placedOrderEvent = deserialize(event.getPayload());
             var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            if (eventType == EventType.PAYMENT_PROCESSED) {
-                var outbox = OutBox.builder()
-                        .aggregateId(placedOrderEvent.id())
-                        .payload(mapper.convertValue(placedOrderEvent, JsonNode.class))
-                        .aggregateType(AggregateType.ORDER)
-                        .type(EventType.PAYMENT_PROCESSED)
-                        .build();
-                outBoxRepository.save(outbox);
-                orderUseCase.trackAction(placedOrderEvent.id(), EventType.PAYMENT_PROCESSED);
-            } else if (eventType == EventType.PAYMENT_DECLINED) {
-                orderUseCase.updateOrderStatus(placedOrderEvent.id(),
-                        EventType.PAYMENT_DECLINED, false);
-            }
-
-            // Marked message is processed
+            sagaOrchestrator.handleEvent(placedOrderEvent.id(), eventType);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -69,20 +54,7 @@ public class EventHandlerDelegate {
         if (Objects.nonNull(messageId) && !messageLogRepository.existsById(messageId)) {
             var placedOrderEvent = deserialize(event.getPayload());
             var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            if (eventType == EventType.INVENTORY_DEDUCTED) {
-                orderUseCase.updateOrderStatus(placedOrderEvent.id(), EventType.INVENTORY_DEDUCTED, true);
-            } else if (eventType == EventType.INVENTORY_DECLINED) {
-                orderUseCase.updateOrderStatus(placedOrderEvent.id(), EventType.INVENTORY_DECLINED, false);
-                var outbox = OutBox.builder()
-                        .aggregateId(placedOrderEvent.id())
-                        .aggregateType(AggregateType.ORDER)
-                        .type(EventType.PAYMENT_REFUND_INITIATED)
-                        .payload(mapper.convertValue(placedOrderEvent, JsonNode.class))
-                        .build();
-                outBoxRepository.save(outbox);
-                orderUseCase.trackAction(placedOrderEvent.id(), EventType.PAYMENT_REFUND_INITIATED);
-            }
-
+            sagaOrchestrator.handleEvent(placedOrderEvent.id(), eventType);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }

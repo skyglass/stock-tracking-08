@@ -24,8 +24,6 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
 
   private final OrderJpaRepository orderJpaRepository;
 
-  private final OutBoxRepository outBoxRepository;
-
   @Override
   public Order findOrderById(UUID orderId) {
     var orderEntity = orderJpaRepository
@@ -45,17 +43,5 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
   public Order saveOrder(Order order) {
     var entity = mapper.convertValue(order, OrderEntity.class);
     return mapper.convertValue(orderJpaRepository.save(entity), Order.class);
-  }
-
-  @Override
-  public void exportOutBoxEvent(Order order, EventType eventType) {
-    var outbox =
-        OutBox.builder()
-            .aggregateId(order.getId())
-            .aggregateType(AggregateType.ORDER)
-            .type(eventType)
-            .payload(mapper.convertValue(order, JsonNode.class))
-            .build();
-    outBoxRepository.save(outbox);
   }
 }

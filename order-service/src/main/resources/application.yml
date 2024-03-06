@@ -41,7 +41,7 @@ spring:
 
   cloud:
     function:
-      definition: startSaga;reserveCustomerBalanceStage;reserveProductStockStage
+      definition: reserveCustomerBalanceStage;reserveProductStockStage
     stream:
       default:
         producer:

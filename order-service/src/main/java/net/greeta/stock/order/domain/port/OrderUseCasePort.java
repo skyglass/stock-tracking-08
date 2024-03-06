@@ -10,11 +10,7 @@ import java.util.UUID;
 
 public interface OrderUseCasePort {
 
-  UUID placeOrder(OrderRequest orderRequest);
-
   void updateOrderStatus(Order order, OrderStatus orderStatus);
-
-  void updateOrderStatus(UUID orderId, EventType action, boolean success);
 
   void trackAction(UUID orderId, EventType action);
 

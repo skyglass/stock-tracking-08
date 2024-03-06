@@ -5,6 +5,7 @@ import net.greeta.stock.common.E2eTest;
 import net.greeta.stock.common.domain.dto.customer.Customer;
 import net.greeta.stock.common.domain.dto.inventory.Product;
 import net.greeta.stock.common.domain.dto.order.Order;
+import net.greeta.stock.common.domain.dto.order.OrderStatus;
 import net.greeta.stock.customer.CustomerTestHelper;
 import net.greeta.stock.helper.RetryHelper;
 import net.greeta.stock.inventory.InventoryTestHelper;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -74,6 +76,55 @@ public class OrderProcessingE2eTest extends E2eTest {
         });
 
         assertTrue(stockIncreased);
+
+        Boolean orderCompleted =  RetryHelper.retry(() -> {
+            var result = orderTestHelper.getOrder(orderId, counter);
+            return Objects.equals(OrderStatus.COMPLETED, result.getStatus());
+        });
+
+        assertTrue(orderCompleted);
+    }
+
+    @Test
+    @SneakyThrows
+    void testPaymentFailed() {
+        Integer stockQuantity = 20;
+        String customerName = "testCustomer";
+        double customerBalance = 0.0;
+        String productName = "testProduct";
+        Integer orderQuantity = 2;
+        double productPrice = 2.0;
+        AtomicInteger counter = new AtomicInteger(0);
+
+        Customer customer = customerTestHelper.createCustomer(customerName, customerBalance);
+        Product product = inventoryTestHelper.createProduct(productName, stockQuantity);
+
+        UUID orderId = orderTestHelper.placeOrder(product.getId(), customer.getId(),
+                orderQuantity, productPrice, counter);
+
+        Order orderCreated =  RetryHelper.retry(() ->
+                orderTestHelper.getOrder(orderId, counter)
+        );
+
+        assertNotNull(orderCreated);
+
+        assertEquals(orderId, orderCreated.getId());
+        assertEquals(product.getId(), orderCreated.getProductId());
+        assertEquals(orderQuantity, orderCreated.getQuantity());
+
+        Boolean orderPaymentFailed =  RetryHelper.retry(() -> {
+            var result = orderTestHelper.getOrder(orderId, counter);
+            return Objects.equals(OrderStatus.PAYMENT_FAILED, result.getStatus());
+        });
+
+        assertTrue(orderPaymentFailed);
+
+        Boolean stockStaysTheSame =  RetryHelper.retry(() -> {
+            Product p = inventoryTestHelper.getProduct(product.getId(), counter);
+            return p.getStocks() == stockQuantity;
+        });
+
+        assertTrue(stockStaysTheSame);
     }
 
 

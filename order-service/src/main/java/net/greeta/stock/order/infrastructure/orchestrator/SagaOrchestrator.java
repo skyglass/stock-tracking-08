@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.greeta.stock.common.domain.dto.order.Order;
 import net.greeta.stock.common.domain.dto.order.OrderStatus;
 import net.greeta.stock.common.domain.dto.workflow.EventType;
-import net.greeta.stock.common.domain.dto.workflow.StepType;
+import net.greeta.stock.common.domain.dto.workflow.StepName;
 import net.greeta.stock.order.domain.port.OrderRepositoryPort;
 import org.springframework.stereotype.Component;
 
@@ -25,12 +25,12 @@ public class SagaOrchestrator {
 
     private final OrderRepositoryPort orderRepository;
 
-    private static final Map<StepType, SagaStep> stepMap = new HashMap<>();
+    private static final Map<StepName, SagaStep> stepMap = new HashMap<>();
 
    @PostConstruct
    public void init() {
-        stepMap.put(StepType.INVENTORY, inventoryStep);
-        stepMap.put(StepType.PAYMENT, paymentStep);
+        stepMap.put(StepName.INVENTORY, inventoryStep);
+        stepMap.put(StepName.PAYMENT, paymentStep);
         buildInventoryStep();
         buildPaymentStep();
    }
@@ -48,21 +48,31 @@ public class SagaOrchestrator {
    private void buildPaymentStep() {
        paymentStep.setPreviousStep(inventoryStep);
        paymentStep.setSuccessResponseStatus(OrderStatus.COMPLETED);
-       paymentStep.setFailureResponseStatus(OrderStatus.CANCELLED);
+       paymentStep.setFailureResponseStatus(OrderStatus.PAYMENT_FAILED);
        paymentStep.setRequestAction(EventType.PAYMENT_REQUEST_INITIATED);
        paymentStep.setCompensateRequestAction(EventType.PAYMENT_REFUND_INITIATED);
        paymentStep.setSuccessResponseEvent(EventType.PAYMENT_PROCESSED);
        paymentStep.setFailureResponseEvent(EventType.PAYMENT_DECLINED);
    }
 
-    public void handleEvent(UUID orderId, EventType eventType) {
+    public void handleRequestEvent(UUID orderId, EventType eventType) {
         Order order = orderRepository.findOrderById(orderId);
-        handleEvent(order, eventType);
+        handleRequestEvent(order, eventType);
     }
 
-    public void handleEvent(Order order, EventType eventType) {
+    public void handleResponseEvent(UUID orderId, EventType eventType) {
+        Order order = orderRepository.findOrderById(orderId);
+        handleResponseEvent(order, eventType);
+    }
+
+    public void handleRequestEvent(Order order, EventType eventType) {
         SagaStep sagaStep = stepMap.get(eventType.getStepType());
-        sagaStep.handleEvent(order, eventType);
+        sagaStep.handleRequestEvent(order, eventType);
+    }
+
+    public void handleResponseEvent(Order order, EventType eventType) {
+        SagaStep sagaStep = stepMap.get(eventType.getStepType());
+        sagaStep.handleResponseEvent(order, eventType);
     }
 
 }

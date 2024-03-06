@@ -38,5 +38,28 @@ CREATE TABLE order_workflow_action (
     order_id   uuid NOT NULL,
     action     character varying COLLATE pg_catalog."default" NOT NULL,
     created_at TIMESTAMP NOT NULL,
-    CONSTRAINT workflow_action_fk FOREIGN KEY (order_id) REFERENCES orders (order_id)
+    CONSTRAINT workflow_action_fk FOREIGN KEY (order_id) REFERENCES orders (id)
+);
+
+DROP TABLE IF EXISTS order_workflow_status;
+
+CREATE TABLE order_workflow_status (
+    id         uuid PRIMARY KEY,
+    order_id   uuid NOT NULL UNIQUE,
+    request_id   uuid NOT NULL,
+    step_name     character varying COLLATE pg_catalog."default" NOT NULL,
+    request_status     character varying COLLATE pg_catalog."default" NOT NULL,
+    compensation_status     character varying COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT workflow_status_fk FOREIGN KEY (order_id) REFERENCES orders (id)
+);
+
+DROP TABLE IF EXISTS order_compensation_status;
+
+CREATE TABLE order_compensation_status (
+    id         uuid PRIMARY KEY,
+    order_id   uuid NOT NULL UNIQUE,
+    request_id   uuid NOT NULL,
+    step_name     character varying COLLATE pg_catalog."default" NOT NULL,
+    request_status     character varying COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT compensation_status_fk FOREIGN KEY (order_id) REFERENCES orders (id)
 );

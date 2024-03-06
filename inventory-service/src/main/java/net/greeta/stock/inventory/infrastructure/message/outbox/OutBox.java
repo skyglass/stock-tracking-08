@@ -38,4 +38,10 @@ public class OutBox {
   @Type(JsonType.class)
   @Column(columnDefinition = "json")
   private JsonNode payload;
+
+  @Column
+  private String exceptionType;
+
+  @Column
+  private String exceptionMessage;
 }

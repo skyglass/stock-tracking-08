@@ -108,7 +108,7 @@ public class OrderProcessingConcurrencyE2eTest extends E2eTest {
 
         Boolean orderStockNotApproved =  RetryHelper.retry(() -> {
             var result = orderTestHelper.getOrder(notApprovedOrderId, counter);
-            return Objects.equals(OrderStatus.CANCELLED, result.getStatus());
+            return Objects.equals(OrderStatus.INVENTORY_FAILED, result.getStatus());
         });
 
         assertTrue(orderStockNotApproved);

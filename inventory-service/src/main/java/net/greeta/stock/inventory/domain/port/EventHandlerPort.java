@@ -7,5 +7,7 @@ public interface EventHandlerPort {
 
   Consumer<Message<String>> handleReserveProductStockRequest();
 
+  Consumer<Message<String>> handleCompensateProductStockRequest();
+
   public Consumer<Message<String>> handleDlq();
 }

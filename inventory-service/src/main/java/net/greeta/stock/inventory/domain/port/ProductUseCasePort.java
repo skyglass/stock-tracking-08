@@ -16,4 +16,6 @@ public interface ProductUseCasePort {
   Product addStock(AddStockRequest addStockRequest);
 
   boolean reserveProduct(PlacedOrderEvent orderEvent);
+
+  boolean compensateProduct(PlacedOrderEvent orderEvent);
 }

@@ -27,12 +27,16 @@ public abstract class SagaStep {
 
     private EventType failureAction;
 
-    public void handleEvent(Order order, EventType eventType) {
+    public void handleRequestEvent(Order order, EventType eventType) {
         if (eventType.isRequest() && eventType == requestAction) {
             handleRequest(order);
         } else if (eventType.isCompensateRequest() && eventType == compensateAction) {
             handleCompensateRequest(order);
-        } else if (eventType.isSuccessResponse() && eventType == successAction) {
+        }
+    }
+
+    public void handleResponseEvent(Order order, EventType eventType) {
+        if (eventType.isSuccessResponse() && eventType == successAction) {
             handleSuccessResponse(order);
         } else if (eventType.isFailureResponse() && eventType == failureAction) {
             handleFailureResponse(order);
@@ -73,7 +77,7 @@ public abstract class SagaStep {
             trackAction(order, failureAction);
             onFailure(order);
             if (failureStatus != null) {
-                setFailureResponseStatus(failureStatus);
+                setOrderStatus(order, failureStatus);
             }
             if (this.previousStep != null) {
                 this.previousStep.handleCompensateRequest(order);
@@ -113,11 +117,11 @@ public abstract class SagaStep {
         this.nextStep = nextStep;
     }
 
-    public void setSuccessResponseStatus(OrderStatus orderStatus) {
+    public void setSuccessResponseStatus(OrderStatus successStatus) {
         this.successStatus = successStatus;
     }
 
-    public void setFailureResponseStatus(OrderStatus orderStatus) {
+    public void setFailureResponseStatus(OrderStatus failureStatus) {
         this.failureStatus = failureStatus;
     }
 

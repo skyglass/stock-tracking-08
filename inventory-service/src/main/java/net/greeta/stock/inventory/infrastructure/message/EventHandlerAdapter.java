@@ -37,6 +37,8 @@ public class EventHandlerAdapter implements EventHandlerPort {
 
   private final EventHandlerDelegate eventHandlerDelegate;
 
+  private final EventHandlerDlqDelegate eventHandlerDlqDelegate;
+
   @Bean
   @Override
   @Transactional
@@ -47,7 +49,14 @@ public class EventHandlerAdapter implements EventHandlerPort {
   @Bean
   @Override
   @Transactional
+  public Consumer<Message<String>> handleCompensateProductStockRequest() {
+    return event -> eventHandlerDelegate.handleCompensateProductStockRequest(event);
+  }
+
+  @Bean
+  @Override
+  @Transactional
   public Consumer<Message<String>> handleDlq() {
-    return event -> eventHandlerDelegate.handleDlq(event);
+    return event -> eventHandlerDlqDelegate.handleDlq(event);
   }
 }

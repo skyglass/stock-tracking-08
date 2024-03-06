@@ -3,6 +3,7 @@ package net.greeta.stock.common.domain.dto.order;
 import lombok.Builder;
 import net.greeta.stock.common.domain.dto.workflow.EventType;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -10,5 +11,5 @@ import java.util.UUID;
 public record OrderWorkflowAction(UUID id,
                                   UUID orderId,
                                   EventType action,
-                                  Instant createdAt) {
+                                  Timestamp createdAt) {
 }

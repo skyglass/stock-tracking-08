@@ -1,12 +1,16 @@
 package net.greeta.stock.order.infrastructure.repository;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import net.greeta.stock.common.domain.dto.workflow.EventType;
-import org.springframework.data.annotation.Id;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -14,12 +18,14 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity(name = "order_workflow_action")
 public class OrderWorkflowActionEntity {
 
     @Id
     private UUID id;
     private UUID orderId;
+    @Enumerated(EnumType.STRING)
     private EventType action;
-    private Instant createdAt;
+    private Timestamp createdAt;
 
 }

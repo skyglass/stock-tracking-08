@@ -24,6 +24,9 @@ public class OrderTestDataService extends JdbcTestDataService {
     public void resetDatabase() {
         executeString("DELETE FROM message_log");
         executeString("DELETE FROM out_box");
+        executeString("DELETE FROM order_workflow_action");
+        executeString("DELETE FROM order_workflow_status");
+        executeString("DELETE FROM order_compensation_status");
         executeString("DELETE FROM orders");
     }
 }

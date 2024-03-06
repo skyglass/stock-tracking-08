@@ -41,7 +41,7 @@ spring:
 
   cloud:
     function:
-      definition: handleReserveProductStockRequest;handleDlq
+      definition: handleReserveProductStockRequest;handleCompensateProductStockRequest;handleDlq
     stream:
       default:
         producer:
@@ -60,6 +60,9 @@ spring:
         handleReserveProductStockRequest-in-0:
           destination: ORDER.events
           group: inventory-service-reserve-stock-group
+        handleCompensateProductStockRequest-in-0:
+          destination: ORDER.events
+          group: inventory-service-compensate-stock-group
         handleDlq-in-0:
           destination: ORDER.events.dlq
           group: inventory-service-dlq
@@ -70,6 +73,10 @@ spring:
           brokers: ${app.kafka.brokers}
         bindings:
           handleReserveProductStockRequest-in-0:
+            consumer:
+              enable-dlq: true
+              dlq-name: ORDER.events.dlq
+          handleCompensateProductStockRequest-in-0:
             consumer:
               enable-dlq: true
               dlq-name: ORDER.events.dlq

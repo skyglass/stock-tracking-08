@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Objects;
 
+import io.micrometer.common.util.StringUtils;
 import net.greeta.stock.common.domain.dto.workflow.AggregateType;
 import net.greeta.stock.common.domain.dto.workflow.EventType;
 import net.greeta.stock.order.domain.PlacedOrderEvent;
@@ -43,7 +44,7 @@ public class EventHandlerDelegate {
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
             var placedOrderEvent = deserialize(event.getPayload());
             var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            sagaOrchestrator.handleEvent(placedOrderEvent.id(), eventType);
+            sagaOrchestrator.handleResponseEvent(placedOrderEvent.id(), eventType);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -54,7 +55,17 @@ public class EventHandlerDelegate {
         if (Objects.nonNull(messageId) && !messageLogRepository.existsById(messageId)) {
             var placedOrderEvent = deserialize(event.getPayload());
             var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            sagaOrchestrator.handleEvent(placedOrderEvent.id(), eventType);
+            var exceptionType = getHeaderAsString(event.getHeaders(), "exceptionType");
+            var exceptionMessage = getHeaderAsString(event.getHeaders(), "exceptionMessage");
+            if (StringUtils.isNotBlank(exceptionType)) {
+                log.info("EventHandlerDelegate.reserveProductStockStage handle failure response for order {}, " +
+                                "event {}, exceptionType {} and exceptionMessage {}",
+                        placedOrderEvent.id(), eventType, exceptionType, exceptionMessage);
+            } else {
+                log.info("EventHandlerDelegate.reserveProductStockStage for order {} and event {}",
+                        placedOrderEvent.id(), eventType);
+            }
+            sagaOrchestrator.handleResponseEvent(placedOrderEvent.id(), eventType);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -70,12 +81,23 @@ public class EventHandlerDelegate {
     }
 
     private EventType getHeaderAsEnum(MessageHeaders headers, String name) {
+        String stringResult = getHeaderAsString(headers, name, true);
+        return EventType.valueOf(stringResult);
+    }
+
+    private String getHeaderAsString(MessageHeaders headers, String name) {
+        return getHeaderAsString(headers, name, false);
+    }
+
+    private String getHeaderAsString(MessageHeaders headers, String name, boolean isRequired) {
         var value = headers.get(name, byte[].class);
-        if (Objects.isNull(value)) {
+        if (Objects.isNull(value) && isRequired) {
             throw new IllegalArgumentException(
                     String.format("Expected record header %s not present", name));
         }
-        String stringResult = new String(value, StandardCharsets.UTF_8);
-        return EventType.valueOf(stringResult);
+        if (Objects.isNull(value)) {
+            return null;
+        }
+        return new String(value, StandardCharsets.UTF_8);
     }
 }

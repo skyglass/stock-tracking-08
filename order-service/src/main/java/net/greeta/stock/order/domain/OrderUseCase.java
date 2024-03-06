@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class OrderUseCase implements OrderUseCasePort {
 
@@ -34,37 +33,12 @@ public class OrderUseCase implements OrderUseCasePort {
 
   private final OutBoxRepository outBoxRepository;
 
-  private final SagaOrchestrator sagaOrchestrator;
-
   @Override
   @Transactional
-  public UUID placeOrder(OrderRequest orderRequest) {
-    var order = mapper.convertValue(orderRequest, Order.class);
-    order.setCreatedAt(Timestamp.from(Instant.now()));
-    order.setStatus(OrderStatus.PENDING);
-    order.setId(UUID.randomUUID());
-    sagaOrchestrator.handleEvent(order, EventType.INVENTORY_REQUEST_INITIATED);
-    orderRepository.saveOrder(order);
-    return order.getId();
-  }
-
-  @Override
   public void updateOrderStatus(Order order, OrderStatus orderStatus) {
+    log.info("OrderUseCase.updateOrderStatus for order {} and status {}", order.getId(), orderStatus);
     order.setStatus(orderStatus);
     orderRepository.saveOrder(order);
-  }
-
-  @Override
-  @Transactional
-  public void updateOrderStatus(UUID orderId, EventType action, boolean success) {
-    var order = orderRepository.findOrderById(orderId);
-    if (success) {
-      order.setStatus(OrderStatus.COMPLETED);
-    } else {
-      order.setStatus(OrderStatus.CANCELLED);
-    }
-    orderRepository.saveOrder(order);
-    workflowAction.track(orderId, action);
   }
 
   @Override
@@ -74,11 +48,13 @@ public class OrderUseCase implements OrderUseCasePort {
   }
 
   @Override
+  @Transactional(readOnly = true)
   public Order getOrder(UUID orderId) {
     return orderRepository.findOrderById(orderId);
   }
 
   @Override
+  @Transactional(readOnly = true)
   public OrderDetails getOrderDetails(UUID orderId) {
     Order order = orderRepository.findOrderById(orderId);
     List<OrderWorkflowAction> actions = workflowAction.retrieve(orderId);
@@ -86,6 +62,7 @@ public class OrderUseCase implements OrderUseCasePort {
   }
 
   @Override
+  @Transactional
   public void exportOutBoxEvent(Order order, EventType eventType) {
     var outbox =
             OutBox.builder()

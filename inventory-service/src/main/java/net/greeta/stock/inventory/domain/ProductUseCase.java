@@ -57,4 +57,15 @@ public class ProductUseCase implements ProductUseCasePort {
     productRepository.saveProduct(product);
     return true;
   }
+
+  @Override
+  public boolean compensateProduct(PlacedOrderEvent orderEvent) {
+      var product = findById(orderEvent.productId());
+      if (orderEvent.quantity() < 0) {
+        throw new IllegalArgumentException("ProductUseCase.compensateProduct error: Quantity for order %s is negative".formatted(orderEvent.id()));
+      }
+      product.setStocks(product.getStocks() + orderEvent.quantity());
+      productRepository.saveProduct(product);
+      return true;
+  }
 }

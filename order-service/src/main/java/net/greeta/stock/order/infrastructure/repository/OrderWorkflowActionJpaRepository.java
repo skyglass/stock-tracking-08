@@ -1,6 +1,5 @@
 package net.greeta.stock.order.infrastructure.repository;
 
-import net.greeta.stock.common.domain.dto.workflow.EventType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

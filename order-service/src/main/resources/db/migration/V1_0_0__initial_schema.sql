@@ -20,7 +20,8 @@ CREATE TABLE out_box (
      id UUID PRIMARY KEY,
      aggregate_type character varying COLLATE pg_catalog."default" NOT NULL,
      aggregate_id UUID NOT NULL,
-     type character varying COLLATE pg_catalog."default" NOT NULL,
+     event_type character varying COLLATE pg_catalog."default" NOT NULL,
+     request_type character varying COLLATE pg_catalog."default" NOT NULL,
      payload JSONB NOT NULL
 );
 

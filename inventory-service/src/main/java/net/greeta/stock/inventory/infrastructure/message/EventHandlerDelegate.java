@@ -7,13 +7,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.greeta.stock.common.domain.dto.workflow.AggregateType;
 import net.greeta.stock.common.domain.dto.workflow.EventType;
+import net.greeta.stock.common.domain.dto.workflow.RequestType;
+import net.greeta.stock.common.domain.dto.workflow.ResponseType;
 import net.greeta.stock.inventory.domain.PlacedOrderEvent;
 import net.greeta.stock.inventory.domain.port.ProductUseCasePort;
 import net.greeta.stock.inventory.infrastructure.message.log.MessageLog;
 import net.greeta.stock.inventory.infrastructure.message.log.MessageLogRepository;
 import net.greeta.stock.inventory.infrastructure.message.outbox.OutBox;
 import net.greeta.stock.inventory.infrastructure.message.outbox.OutBoxRepository;
-import org.hibernate.StaleObjectStateException;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
@@ -42,8 +43,9 @@ public class EventHandlerDelegate {
         var messageId = event.getHeaders().getId();
         log.debug("EventHandlerAdapter.handleReserveProductStockRequest: Started processing message {}", messageId);
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
-            var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            handleEvent(event, eventType, EventType.INVENTORY_REQUEST_INITIATED);
+            var eventType = getEventTypeHeaderAsEnum(event.getHeaders(), "eventType");
+            var requestType = getRequestTypeHeaderAsEnum(event.getHeaders(), "requestType");
+            handleEvent(event, eventType, requestType, EventType.INVENTORY);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -53,8 +55,9 @@ public class EventHandlerDelegate {
         var messageId = event.getHeaders().getId();
         log.debug("EventHandlerAdapter.handleCompensateProductStockRequest: Started processing message {}", messageId);
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
-            var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            handleEvent(event, eventType, EventType.INVENTORY_RESTORE_INITIATED);
+            var eventType = getEventTypeHeaderAsEnum(event.getHeaders(), "eventType");
+            var requestType = getRequestTypeHeaderAsEnum(event.getHeaders(), "requestType");
+            handleEvent(event, eventType, requestType, EventType.INVENTORY);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -65,8 +68,9 @@ public class EventHandlerDelegate {
         var messageId = event.getHeaders().getId();
         log.debug("EventHandlerAdapter.handleDlq: Started processing message {}", messageId);
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
-            var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            handleEvent(event, eventType, eventType);
+            var eventType = getEventTypeHeaderAsEnum(event.getHeaders(), "eventType");
+            var requestType = getRequestTypeHeaderAsEnum(event.getHeaders(), "requestType");
+            handleEvent(event, eventType, requestType, eventType);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -84,7 +88,8 @@ public class EventHandlerDelegate {
             outbox.setAggregateId(placedOrderEvent.id());
             outbox.setAggregateType(AggregateType.PRODUCT);
             outbox.setPayload(mapper.convertValue(placedOrderEvent, JsonNode.class));
-            outbox.setType(EventType.INVENTORY_DECLINED);
+            outbox.setEventType(EventType.INVENTORY);
+            outbox.setResponseType(ResponseType.FAILURE);
             outbox.setExceptionType(e.getClass().getSimpleName().replace("Exception", ""));
             outbox.setExceptionMessage(e.getMessage());
 
@@ -106,7 +111,31 @@ public class EventHandlerDelegate {
         return placedOrderEvent;
     }
 
-    private EventType getHeaderAsEnum(MessageHeaders headers, String name) {
+    private void handleEvent(Message<String> event, EventType eventType, RequestType requestType, EventType expectedEventType) {
+        if (eventType != expectedEventType) {
+            return;
+        }
+        if (eventType == EventType.INVENTORY && requestType == RequestType.ACTION) {
+            var placedOrderEvent = deserialize(event.getPayload());
+            log.debug("Start process reserve product stock {}", placedOrderEvent);
+            var outbox = new OutBox();
+            outbox.setAggregateId(placedOrderEvent.id());
+            outbox.setAggregateType(AggregateType.PRODUCT);
+            outbox.setPayload(mapper.convertValue(placedOrderEvent, JsonNode.class));
+            productUseCase.reserveProduct(placedOrderEvent);
+            outbox.setEventType(EventType.INVENTORY);
+            outbox.setResponseType(ResponseType.SUCCESS);
+            outBoxRepository.save(outbox);
+            log.debug("Done process reserve product stock {}", placedOrderEvent);
+        } else if (eventType == EventType.INVENTORY && requestType == RequestType.COMPENSATE) {
+            var placedOrderEvent = deserialize(event.getPayload());
+            log.debug("Start process compensate product stock {}", placedOrderEvent);
+            productUseCase.compensateProduct(placedOrderEvent);
+            log.debug("Done process compensate product stock {}", placedOrderEvent);
+        }
+    }
+
+    private EventType getEventTypeHeaderAsEnum(MessageHeaders headers, String name) {
         var value = headers.get(name, byte[].class);
         if (Objects.isNull(value)) {
             throw new IllegalArgumentException(
@@ -116,26 +145,13 @@ public class EventHandlerDelegate {
         return EventType.valueOf(stringResult);
     }
 
-    private void handleEvent(Message<String> event, EventType eventType, EventType expectedEventType) {
-        if (eventType != expectedEventType) {
-            return;
+    private RequestType getRequestTypeHeaderAsEnum(MessageHeaders headers, String name) {
+        var value = headers.get(name, byte[].class);
+        if (Objects.isNull(value)) {
+            throw new IllegalArgumentException(
+                    String.format("Expected record header %s not present", name));
         }
-        if (eventType == EventType.INVENTORY_REQUEST_INITIATED) {
-            var placedOrderEvent = deserialize(event.getPayload());
-            log.debug("Start process reserve product stock {}", placedOrderEvent);
-            var outbox = new OutBox();
-            outbox.setAggregateId(placedOrderEvent.id());
-            outbox.setAggregateType(AggregateType.PRODUCT);
-            outbox.setPayload(mapper.convertValue(placedOrderEvent, JsonNode.class));
-            productUseCase.reserveProduct(placedOrderEvent);
-            outbox.setType(EventType.INVENTORY_DEDUCTED);
-            outBoxRepository.save(outbox);
-            log.debug("Done process reserve product stock {}", placedOrderEvent);
-        } else if (eventType == EventType.INVENTORY_RESTORE_INITIATED) {
-            var placedOrderEvent = deserialize(event.getPayload());
-            log.debug("Start process compensate product stock {}", placedOrderEvent);
-            productUseCase.compensateProduct(placedOrderEvent);
-            log.debug("Done process compensate product stock {}", placedOrderEvent);
-        }
+        String stringResult = new String(value, StandardCharsets.UTF_8);
+        return RequestType.valueOf(stringResult);
     }
 }

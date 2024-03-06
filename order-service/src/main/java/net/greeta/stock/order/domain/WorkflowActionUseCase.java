@@ -2,7 +2,6 @@ package net.greeta.stock.order.domain;
 
 import lombok.RequiredArgsConstructor;
 import net.greeta.stock.common.domain.dto.order.OrderWorkflowAction;
-import net.greeta.stock.common.domain.dto.workflow.EventType;
 import net.greeta.stock.order.infrastructure.mapper.EntityDtoMapper;
 import net.greeta.stock.order.domain.port.WorkflowActionPort;
 import net.greeta.stock.order.infrastructure.repository.OrderWorkflowActionRepositoryAdapter;

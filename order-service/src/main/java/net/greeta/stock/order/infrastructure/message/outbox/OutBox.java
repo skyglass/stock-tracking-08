@@ -1,19 +1,18 @@
 package net.greeta.stock.order.infrastructure.message.outbox;
 
-import java.util.UUID;
-
-import jakarta.persistence.*;
-import net.greeta.stock.common.domain.dto.workflow.AggregateType;
-import net.greeta.stock.common.domain.dto.workflow.EventType;
-import org.hibernate.annotations.Type;
-
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.hypersistence.utils.hibernate.type.json.JsonType;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import net.greeta.stock.common.domain.dto.workflow.AggregateType;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
+import net.greeta.stock.common.domain.dto.workflow.RequestType;
+import org.hibernate.annotations.Type;
+
+import java.util.UUID;
 
 @Data
 @Entity
@@ -35,7 +34,11 @@ public class OutBox {
 
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
-  private EventType type;
+  private EventType eventType;
+
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  private RequestType requestType;
 
   @Type(JsonType.class)
   @Column(columnDefinition = "json")

@@ -3,7 +3,6 @@ package net.greeta.stock.order.infrastructure.repository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import net.greeta.stock.common.domain.dto.order.OrderWorkflowAction;
-import net.greeta.stock.common.domain.dto.workflow.EventType;
 import net.greeta.stock.order.domain.port.OrderWorkflowActionRepositoryPort;
 import org.springframework.stereotype.Repository;
 

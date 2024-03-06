@@ -5,6 +5,7 @@ import java.util.UUID;
 import jakarta.persistence.*;
 import net.greeta.stock.common.domain.dto.workflow.AggregateType;
 import net.greeta.stock.common.domain.dto.workflow.EventType;
+import net.greeta.stock.common.domain.dto.workflow.ResponseType;
 import org.hibernate.annotations.Type;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,7 +34,11 @@ public class OutBox {
 
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
-  private EventType type;
+  private EventType eventType;
+
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  private ResponseType responseType;
 
   @Type(JsonType.class)
   @Column(columnDefinition = "json")

@@ -5,8 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import net.greeta.stock.common.domain.dto.workflow.StepName;
 import net.greeta.stock.common.domain.dto.workflow.orchestrator.RequestStatus;
+import net.greeta.stock.common.domain.dto.workflow.orchestrator.StepName;
 
 import java.util.UUID;
 

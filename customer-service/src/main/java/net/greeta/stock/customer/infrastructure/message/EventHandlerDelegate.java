@@ -7,6 +7,8 @@ import java.util.Objects;
 
 import net.greeta.stock.common.domain.dto.workflow.AggregateType;
 import net.greeta.stock.common.domain.dto.workflow.EventType;
+import net.greeta.stock.common.domain.dto.workflow.RequestType;
+import net.greeta.stock.common.domain.dto.workflow.ResponseType;
 import net.greeta.stock.customer.domain.port.CustomerUseCasePort;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
@@ -42,8 +44,9 @@ public class EventHandlerDelegate {
     public void handleReserveCustomerBalanceRequest(Message<String> event) {
         var messageId = event.getHeaders().getId();
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
-            var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            if (eventType == EventType.PAYMENT_REQUEST_INITIATED) {
+            var eventType = getEventTypeHeaderAsEnum(event.getHeaders(), "eventType");
+            var requestType = getRequestTypeHeaderAsEnum(event.getHeaders(), "requestType");
+            if (eventType == EventType.PAYMENT && requestType == RequestType.ACTION) {
                 var placedOrderEvent = deserialize(event.getPayload());
 
                 log.debug("Start process reserve customer balance {}", placedOrderEvent);
@@ -52,10 +55,11 @@ public class EventHandlerDelegate {
                 outbox.setPayload(mapper.convertValue(placedOrderEvent, JsonNode.class));
                 outbox.setAggregateType(AggregateType.CUSTOMER);
 
+                outbox.setEventType(EventType.PAYMENT);
                 if (customerUseCasePort.reserveBalance(placedOrderEvent)) {
-                    outbox.setType(EventType.PAYMENT_PROCESSED);
+                    outbox.setResponseType(ResponseType.SUCCESS);
                 } else {
-                    outbox.setType(EventType.PAYMENT_DECLINED);
+                    outbox.setResponseType(ResponseType.FAILURE);
                 }
 
                 // Exported event into outbox table
@@ -71,8 +75,9 @@ public class EventHandlerDelegate {
     public void handleCompensateCustomerBalanceRequest(Message<String> event) {
         var messageId = event.getHeaders().getId();
         if (Objects.nonNull(messageId) && !messageLogRepository.existsById(messageId)) {
-            var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            if (eventType == EventType.PAYMENT_REFUND_INITIATED) {
+            var eventType = getEventTypeHeaderAsEnum(event.getHeaders(), "eventType");
+            var requestType = getRequestTypeHeaderAsEnum(event.getHeaders(), "requestType");
+            if (eventType == EventType.PAYMENT && requestType == RequestType.COMPENSATE) {
                 var placedOrderEvent = deserialize(event.getPayload());
 
                 log.debug("Start process compensate customer balance {}", placedOrderEvent);
@@ -94,7 +99,7 @@ public class EventHandlerDelegate {
         return placedOrderEvent;
     }
 
-    private EventType getHeaderAsEnum(MessageHeaders headers, String name) {
+    private EventType getEventTypeHeaderAsEnum(MessageHeaders headers, String name) {
         var value = headers.get(name, byte[].class);
         if (Objects.isNull(value)) {
             throw new IllegalArgumentException(
@@ -102,5 +107,15 @@ public class EventHandlerDelegate {
         }
         String stringResult = new String(value, StandardCharsets.UTF_8);
         return EventType.valueOf(stringResult);
+    }
+
+    private RequestType getRequestTypeHeaderAsEnum(MessageHeaders headers, String name) {
+        var value = headers.get(name, byte[].class);
+        if (Objects.isNull(value)) {
+            throw new IllegalArgumentException(
+                    String.format("Expected record header %s not present", name));
+        }
+        String stringResult = new String(value, StandardCharsets.UTF_8);
+        return RequestType.valueOf(stringResult);
     }
 }

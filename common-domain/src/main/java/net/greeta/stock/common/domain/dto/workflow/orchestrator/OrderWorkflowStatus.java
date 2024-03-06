@@ -1,7 +1,7 @@
 package net.greeta.stock.common.domain.dto.workflow.orchestrator;
 
 import lombok.Builder;
-import net.greeta.stock.common.domain.dto.workflow.StepName;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
 
 import java.util.UUID;
 
@@ -9,7 +9,7 @@ import java.util.UUID;
 public record OrderWorkflowStatus(UUID id,
                                       UUID orderId,
                                       UUID requestId,
-                                      StepName stepName,
+                                      EventType stepName,
                                       RequestStatus requestStatus,
                                       RequestStatus compensationStatus) {
 }

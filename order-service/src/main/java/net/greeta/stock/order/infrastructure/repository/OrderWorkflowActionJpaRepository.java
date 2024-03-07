@@ -9,7 +9,7 @@ import java.util.UUID;
 @Repository
 public interface OrderWorkflowActionJpaRepository extends JpaRepository<OrderWorkflowActionEntity, UUID> {
 
-    Boolean existsByOrderIdAndAction(UUID orderId, EventType action);
+    Boolean existsByOrderIdAndAction(UUID orderId, String action);
 
     List<OrderWorkflowActionEntity> findByOrderIdOrderByCreatedAt(UUID orderId);
 

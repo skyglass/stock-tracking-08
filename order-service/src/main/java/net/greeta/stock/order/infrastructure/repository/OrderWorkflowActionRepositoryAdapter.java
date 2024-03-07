@@ -19,7 +19,7 @@ public class OrderWorkflowActionRepositoryAdapter implements OrderWorkflowAction
     private final OrderWorkflowActionJpaRepository orderWorkflowActionJpaRepository;
 
     @Override
-    public Boolean existsByOrderIdAndAction(UUID orderId, EventType action) {
+    public Boolean existsByOrderIdAndAction(UUID orderId, String action) {
         return orderWorkflowActionJpaRepository.existsByOrderIdAndAction(orderId, action);
     }
 

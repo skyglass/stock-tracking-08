@@ -8,6 +8,6 @@ import java.util.UUID;
 @Builder
 public record OrderWorkflowAction(UUID id,
                                   UUID orderId,
-                                  EventType action,
+                                  String action,
                                   Timestamp createdAt) {
 }

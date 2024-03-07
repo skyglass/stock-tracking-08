@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public interface OrderWorkflowActionRepositoryPort {
 
-    Boolean existsByOrderIdAndAction(UUID orderId, EventType action);
+    Boolean existsByOrderIdAndAction(UUID orderId, String action);
 
     List<OrderWorkflowAction> findByOrderIdOrderByCreatedAt(UUID orderId);
 

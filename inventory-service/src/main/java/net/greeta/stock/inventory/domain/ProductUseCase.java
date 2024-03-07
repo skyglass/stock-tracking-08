@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class ProductUseCase implements ProductUseCasePort {
 
@@ -25,11 +24,13 @@ public class ProductUseCase implements ProductUseCasePort {
   private final ProductRepositoryPort productRepository;
 
   @Override
+  @Transactional(readOnly = true)
   public Product findById(UUID productId) {
     return productRepository.findProductById(productId).orElseThrow(NotFoundException::new);
   }
 
   @Override
+  @Transactional
   public Product create(ProductRequest productRequest) {
     var product = mapper.convertValue(productRequest, Product.class);
     product.setId(UUID.randomUUID());
@@ -37,6 +38,7 @@ public class ProductUseCase implements ProductUseCasePort {
   }
 
   @Override
+  @Transactional
   public Product addStock(AddStockRequest addStockRequest) {
     var product = findById(addStockRequest.productId());
     if (addStockRequest.quantity() <= 0) {
@@ -48,6 +50,7 @@ public class ProductUseCase implements ProductUseCasePort {
   }
 
   @Override
+  @Transactional
   public boolean reserveProduct(PlacedOrderEvent orderEvent) {
     var product = findById(orderEvent.productId());
     if (product.getStocks() - orderEvent.quantity() < 0) {
@@ -59,6 +62,7 @@ public class ProductUseCase implements ProductUseCasePort {
   }
 
   @Override
+  @Transactional
   public boolean compensateProduct(PlacedOrderEvent orderEvent) {
       var product = findById(orderEvent.productId());
       if (orderEvent.quantity() < 0) {

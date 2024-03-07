@@ -5,10 +5,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Objects;
 
-import net.greeta.stock.common.domain.dto.workflow.AggregateType;
-import net.greeta.stock.common.domain.dto.workflow.EventType;
-import net.greeta.stock.common.domain.dto.workflow.RequestType;
-import net.greeta.stock.common.domain.dto.workflow.ResponseType;
+import net.greeta.stock.common.domain.dto.workflow.*;
 import net.greeta.stock.customer.domain.port.CustomerUseCasePort;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
@@ -56,10 +53,11 @@ public class EventHandlerDelegate {
                 outbox.setAggregateType(AggregateType.CUSTOMER);
 
                 outbox.setEventType(EventType.PAYMENT);
+                outbox.setResponseType(ResponseType.ACTION);
                 if (customerUseCasePort.reserveBalance(placedOrderEvent)) {
-                    outbox.setResponseType(ResponseType.SUCCESS);
+                    outbox.setResponseStatus(ResponseStatus.SUCCESS);
                 } else {
-                    outbox.setResponseType(ResponseType.FAILURE);
+                    outbox.setResponseStatus(ResponseStatus.FAILURE);
                 }
 
                 // Exported event into outbox table

@@ -5,6 +5,7 @@ import java.util.UUID;
 import jakarta.persistence.*;
 import net.greeta.stock.common.domain.dto.workflow.AggregateType;
 import net.greeta.stock.common.domain.dto.workflow.EventType;
+import net.greeta.stock.common.domain.dto.workflow.ResponseStatus;
 import net.greeta.stock.common.domain.dto.workflow.ResponseType;
 import org.hibernate.annotations.Type;
 
@@ -40,7 +41,17 @@ public class OutBox {
   @Enumerated(EnumType.STRING)
   private ResponseType responseType;
 
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  private ResponseStatus responseStatus;
+
   @Type(JsonType.class)
   @Column(columnDefinition = "json")
   private JsonNode payload;
+
+  @Column
+  private String exceptionType;
+
+  @Column
+  private String exceptionMessage;
 }

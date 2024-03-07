@@ -5,10 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.greeta.stock.common.domain.dto.workflow.AggregateType;
-import net.greeta.stock.common.domain.dto.workflow.EventType;
-import net.greeta.stock.common.domain.dto.workflow.RequestType;
-import net.greeta.stock.common.domain.dto.workflow.ResponseType;
+import net.greeta.stock.common.domain.dto.workflow.*;
 import net.greeta.stock.inventory.domain.PlacedOrderEvent;
 import net.greeta.stock.inventory.domain.port.ProductUseCasePort;
 import net.greeta.stock.inventory.infrastructure.message.log.MessageLog;
@@ -45,7 +42,7 @@ public class EventHandlerDelegate {
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
             var eventType = getEventTypeHeaderAsEnum(event.getHeaders(), "eventType");
             var requestType = getRequestTypeHeaderAsEnum(event.getHeaders(), "requestType");
-            handleEvent(event, eventType, requestType, EventType.INVENTORY);
+            handleEvent(event, eventType, requestType, EventType.INVENTORY, RequestType.ACTION);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -57,7 +54,7 @@ public class EventHandlerDelegate {
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
             var eventType = getEventTypeHeaderAsEnum(event.getHeaders(), "eventType");
             var requestType = getRequestTypeHeaderAsEnum(event.getHeaders(), "requestType");
-            handleEvent(event, eventType, requestType, EventType.INVENTORY);
+            handleEvent(event, eventType, requestType, EventType.INVENTORY, RequestType.COMPENSATE);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -70,7 +67,7 @@ public class EventHandlerDelegate {
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
             var eventType = getEventTypeHeaderAsEnum(event.getHeaders(), "eventType");
             var requestType = getRequestTypeHeaderAsEnum(event.getHeaders(), "requestType");
-            handleEvent(event, eventType, requestType, eventType);
+            handleEvent(event, eventType, requestType, eventType, requestType);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -81,6 +78,7 @@ public class EventHandlerDelegate {
         var messageId = event.getHeaders().getId();
         log.debug("EventHandlerAdapter.handleDlqException: Started processing exception {} with message {}", e.getClass().getSimpleName(), e.getMessage());
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
+            var requestType = getRequestTypeHeaderAsEnum(event.getHeaders(), "requestType");
             var placedOrderEvent = deserialize(event.getPayload());
 
             log.debug("Start failed process record exception event {}", placedOrderEvent);
@@ -89,7 +87,12 @@ public class EventHandlerDelegate {
             outbox.setAggregateType(AggregateType.PRODUCT);
             outbox.setPayload(mapper.convertValue(placedOrderEvent, JsonNode.class));
             outbox.setEventType(EventType.INVENTORY);
-            outbox.setResponseType(ResponseType.FAILURE);
+            outbox.setResponseStatus(ResponseStatus.FAILURE);
+            if (requestType == RequestType.ACTION) {
+                outbox.setResponseType(ResponseType.ACTION);
+            } else if (requestType == RequestType.COMPENSATE) {
+                outbox.setResponseType(ResponseType.COMPENSATE);
+            }
             outbox.setExceptionType(e.getClass().getSimpleName().replace("Exception", ""));
             outbox.setExceptionMessage(e.getMessage());
 
@@ -111,8 +114,11 @@ public class EventHandlerDelegate {
         return placedOrderEvent;
     }
 
-    private void handleEvent(Message<String> event, EventType eventType, RequestType requestType, EventType expectedEventType) {
+    private void handleEvent(Message<String> event, EventType eventType, RequestType requestType, EventType expectedEventType, RequestType expectedRequestType) {
         if (eventType != expectedEventType) {
+            return;
+        }
+        if (requestType != expectedRequestType) {
             return;
         }
         if (eventType == EventType.INVENTORY && requestType == RequestType.ACTION) {
@@ -124,7 +130,8 @@ public class EventHandlerDelegate {
             outbox.setPayload(mapper.convertValue(placedOrderEvent, JsonNode.class));
             productUseCase.reserveProduct(placedOrderEvent);
             outbox.setEventType(EventType.INVENTORY);
-            outbox.setResponseType(ResponseType.SUCCESS);
+            outbox.setResponseType(ResponseType.ACTION);
+            outbox.setResponseStatus(ResponseStatus.SUCCESS);
             outBoxRepository.save(outbox);
             log.debug("Done process reserve product stock {}", placedOrderEvent);
         } else if (eventType == EventType.INVENTORY && requestType == RequestType.COMPENSATE) {

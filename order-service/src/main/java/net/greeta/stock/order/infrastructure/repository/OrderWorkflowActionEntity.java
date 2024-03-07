@@ -22,8 +22,7 @@ public class OrderWorkflowActionEntity {
     @Id
     private UUID id;
     private UUID orderId;
-    @Enumerated(EnumType.STRING)
-    private EventType action;
+    private String action;
     private Timestamp createdAt;
 
 }

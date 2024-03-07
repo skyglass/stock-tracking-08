@@ -2,6 +2,10 @@ package net.greeta.stock.order.infrastructure.orchestrator;
 
 import net.greeta.stock.common.domain.dto.order.Order;
 import net.greeta.stock.common.domain.dto.order.OrderStatus;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
+import net.greeta.stock.common.domain.dto.workflow.RequestType;
+import net.greeta.stock.common.domain.dto.workflow.ResponseStatus;
+import net.greeta.stock.common.domain.dto.workflow.ResponseType;
 import net.greeta.stock.common.domain.dto.workflow.orchestrator.StepName;
 import net.greeta.stock.order.domain.port.OrderUseCasePort;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,68 +25,72 @@ public abstract class SagaStep {
 
     protected abstract StepName getStepName();
 
-    public void handleRequest(Order order) {
-            trackAction(order, requestAction);
-            onRequest(order);
-            orderUseCase.exportOutBoxEvent(order, requestAction);
+    public void handleRequest(Order order, RequestType requestType) {
+        trackRequestAction(order, getEventType(), requestType);
+        orderUseCase.exportOutBoxEvent(order, getEventType(), requestType);
     }
 
-    public void handleCompensateRequest(Order order) {
-        if (compensateAction != null) {
-            trackAction(order, compensateAction);
-            onCompensate(order);
-            orderUseCase.exportOutBoxEvent(order, compensateAction);
+    public void handleResponse(Order order, ResponseType responseType, ResponseStatus responseStatus) {
+        if (responseType == ResponseType.ACTION) {
+            if (responseStatus == ResponseStatus.SUCCESS) {
+                handleSuccessResponse(order);
+            } else {
+                handleFailureResponse(order);
+            }
+        } else {
+            if (responseStatus == ResponseStatus.SUCCESS) {
+                handleSuccessCompensateResponse(order);
+            } else {
+                handleFailureCompensateResponse(order);
+            }
         }
     }
 
     public void handleSuccessResponse(Order order) {
-        if (successAction != null) {
-            trackAction(order, successAction);
-            onSuccess(order);
-            if (successStatus != null) {
-                setOrderStatus(order, successStatus);
-            }
-            if (this.nextStep != null) {
-                this.nextStep.handleRequest(order);
-            }
+        trackResponseAction(order, getEventType(), ResponseType.ACTION, ResponseStatus.SUCCESS);
+        if (successStatus != null) {
+            setOrderStatus(order, successStatus);
+        }
+        if (this.nextStep != null) {
+            this.nextStep.handleRequest(order, RequestType.ACTION);
+        }
+    }
+
+    public void handleSuccessCompensateResponse(Order order) {
+        trackResponseAction(order, getEventType(), ResponseType.COMPENSATE, ResponseStatus.SUCCESS);
+        if (this.previousStep != null) {
+            this.previousStep.handleRequest(order, RequestType.COMPENSATE);
         }
     }
 
     public void handleFailureResponse(Order order) {
-        if (failureAction != null) {
-            trackAction(order, failureAction);
-            onFailure(order);
-            if (failureStatus != null) {
-                setOrderStatus(order, failureStatus);
-            }
-            if (this.previousStep != null) {
-                this.previousStep.handleCompensateRequest(order);
-            }
+        trackResponseAction(order, getEventType(), ResponseType.ACTION, ResponseStatus.FAILURE);
+        if (failureStatus != null) {
+            setOrderStatus(order, failureStatus);
+        }
+        if (this.previousStep != null) {
+            this.previousStep.handleRequest(order, RequestType.COMPENSATE);
         }
     }
 
-    protected void onRequest(Order order) {
-
-    }
-
-    protected void onCompensate(Order order) {
-
-    }
-
-    protected void onSuccess(Order order) {
-
-    }
-
-    protected void onFailure(Order order) {
-
+    public void handleFailureCompensateResponse(Order order) {
+        trackResponseAction(order, getEventType(), ResponseType.COMPENSATE, ResponseStatus.FAILURE);
     }
 
     private void setOrderStatus(Order order, OrderStatus orderStatus) {
         orderUseCase.updateOrderStatus(order, orderStatus);
     }
 
-    private void trackAction(Order order, EventType action) {
-        orderUseCase.trackAction(order.getId(), action);
+    private void trackRequestAction(Order order, EventType eventType, RequestType requestType) {
+        orderUseCase.trackRequestAction(order.getId(), eventType, requestType);
+    }
+
+    private void trackResponseAction(Order order, EventType eventType, ResponseType responseType, ResponseStatus responseStatus) {
+        orderUseCase.trackResponseAction(order.getId(), eventType, responseType, responseStatus);
+    }
+
+    private EventType getEventType() {
+        return getStepName().getEventType();
     }
 
     public void setPreviousStep(SagaStep previousStep) {

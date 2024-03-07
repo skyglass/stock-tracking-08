@@ -3,7 +3,7 @@ package net.greeta.stock.order.domain;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.greeta.stock.common.domain.dto.order.*;
-import net.greeta.stock.common.domain.dto.workflow.AggregateType;
+import net.greeta.stock.common.domain.dto.workflow.*;
 import net.greeta.stock.order.domain.port.WorkflowActionPort;
 import net.greeta.stock.order.domain.port.OrderRepositoryPort;
 import net.greeta.stock.order.domain.port.OrderUseCasePort;
@@ -40,8 +40,14 @@ public class OrderUseCase implements OrderUseCasePort {
 
   @Override
   @Transactional
-  public void trackAction(UUID orderId, EventType action) {
-    workflowAction.track(orderId, action);
+  public void trackRequestAction(UUID orderId, EventType eventType, RequestType requestType) {
+    workflowAction.trackRequest(orderId, eventType, requestType);
+  }
+
+  @Override
+  @Transactional
+  public void trackResponseAction(UUID orderId, EventType eventType, ResponseType responseType, ResponseStatus responseStatus) {
+    workflowAction.trackResponse(orderId, eventType, responseType, responseStatus);
   }
 
   @Override
@@ -60,12 +66,13 @@ public class OrderUseCase implements OrderUseCasePort {
 
   @Override
   @Transactional
-  public void exportOutBoxEvent(Order order, EventType eventType) {
+  public void exportOutBoxEvent(Order order, EventType eventType, RequestType requestType) {
     var outbox =
             OutBox.builder()
                     .aggregateId(order.getId())
                     .aggregateType(AggregateType.ORDER)
-                    .type(eventType)
+                    .eventType(eventType)
+                    .requestType(requestType)
                     .payload(mapper.convertValue(order, JsonNode.class))
                     .build();
     outBoxRepository.save(outbox);

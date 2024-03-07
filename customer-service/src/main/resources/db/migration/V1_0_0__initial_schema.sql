@@ -19,7 +19,10 @@ CREATE TABLE out_box (
      aggregate_id UUID NOT NULL,
      event_type character varying COLLATE pg_catalog."default" NOT NULL,
      response_type character varying COLLATE pg_catalog."default" NOT NULL,
-     payload JSONB NOT NULL
+     response_status character varying COLLATE pg_catalog."default" NOT NULL,
+     payload JSONB NOT NULL,
+     exception_type character varying COLLATE pg_catalog."default",
+     exception_message character varying COLLATE pg_catalog."default"
 );
 
 DROP TABLE IF EXISTS message_log;

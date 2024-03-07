@@ -6,6 +6,9 @@ import java.time.Instant;
 import java.util.Objects;
 
 import io.micrometer.common.util.StringUtils;
+import net.greeta.stock.common.domain.dto.workflow.EventType;
+import net.greeta.stock.common.domain.dto.workflow.ResponseStatus;
+import net.greeta.stock.common.domain.dto.workflow.ResponseType;
 import net.greeta.stock.order.domain.PlacedOrderEvent;
 import net.greeta.stock.order.infrastructure.orchestrator.SagaOrchestrator;
 import org.springframework.messaging.Message;
@@ -37,8 +40,20 @@ public class EventHandlerDelegate {
         var messageId = event.getHeaders().getId();
         if (Objects.nonNull(messageId) && !messageLogRepository.isMessageProcessed(messageId)) {
             var placedOrderEvent = deserialize(event.getPayload());
-            var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
-            sagaOrchestrator.handleResponseEvent(placedOrderEvent.id(), eventType);
+            var eventType = getEventTypeHeaderAsEnum(event.getHeaders(), "eventType");
+            var responseType = getResponseTypeHeaderAsEnum(event.getHeaders(), "responseType");
+            var responseStatus = getResponseStatusHeaderAsEnum(event.getHeaders(), "responseStatus");
+            var exceptionType = getHeaderAsString(event.getHeaders(), "exceptionType");
+            var exceptionMessage = getHeaderAsString(event.getHeaders(), "exceptionMessage");
+            if (StringUtils.isNotBlank(exceptionType)) {
+                log.info("EventHandlerDelegate.reserveCustomerBalanceStage handle failure response for order {}, " +
+                                "event {}, exceptionType {} and exceptionMessage {}",
+                        placedOrderEvent.id(), eventType, exceptionType, exceptionMessage);
+            } else {
+                log.info("EventHandlerDelegate.reserveCustomerBalanceStage for order {} and event {}",
+                        placedOrderEvent.id(), eventType);
+            }
+            sagaOrchestrator.handleResponseEvent(placedOrderEvent.id(), eventType, responseType, responseStatus);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -48,7 +63,9 @@ public class EventHandlerDelegate {
         var messageId = event.getHeaders().getId();
         if (Objects.nonNull(messageId) && !messageLogRepository.existsById(messageId)) {
             var placedOrderEvent = deserialize(event.getPayload());
-            var eventType = getHeaderAsEnum(event.getHeaders(), "eventType");
+            var eventType = getEventTypeHeaderAsEnum(event.getHeaders(), "eventType");
+            var responseType = getResponseTypeHeaderAsEnum(event.getHeaders(), "responseType");
+            var responseStatus = getResponseStatusHeaderAsEnum(event.getHeaders(), "responseStatus");
             var exceptionType = getHeaderAsString(event.getHeaders(), "exceptionType");
             var exceptionMessage = getHeaderAsString(event.getHeaders(), "exceptionMessage");
             if (StringUtils.isNotBlank(exceptionType)) {
@@ -59,7 +76,7 @@ public class EventHandlerDelegate {
                 log.info("EventHandlerDelegate.reserveProductStockStage for order {} and event {}",
                         placedOrderEvent.id(), eventType);
             }
-            sagaOrchestrator.handleResponseEvent(placedOrderEvent.id(), eventType);
+            sagaOrchestrator.handleResponseEvent(placedOrderEvent.id(), eventType, responseType, responseStatus);
             messageLogRepository.save(new MessageLog(messageId, Timestamp.from(Instant.now())));
         }
     }
@@ -74,9 +91,19 @@ public class EventHandlerDelegate {
         return placedOrderEvent;
     }
 
-    private EventType getHeaderAsEnum(MessageHeaders headers, String name) {
+    private EventType getEventTypeHeaderAsEnum(MessageHeaders headers, String name) {
         String stringResult = getHeaderAsString(headers, name, true);
         return EventType.valueOf(stringResult);
+    }
+
+    private ResponseType getResponseTypeHeaderAsEnum(MessageHeaders headers, String name) {
+        String stringResult = getHeaderAsString(headers, name, true);
+        return ResponseType.valueOf(stringResult);
+    }
+
+    private ResponseStatus getResponseStatusHeaderAsEnum(MessageHeaders headers, String name) {
+        String stringResult = getHeaderAsString(headers, name, true);
+        return ResponseStatus.valueOf(stringResult);
     }
 
     private String getHeaderAsString(MessageHeaders headers, String name) {

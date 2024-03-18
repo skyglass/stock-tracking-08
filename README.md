@@ -1,4 +1,4 @@
-### 📖 Concurrency and Resiliency Patterns in Saga Transactions for Spring Boot Microservices
+### 📖 [IN PROGRESS, NOT FINISHED] Concurrency and Resiliency Patterns in Saga Transactions for Spring Boot Microservices
 
 #### ✅ Saga Event Routing with Content Based Router, Outbox Pattern, Retryable Exceptions and DLQ Error Channel using Srping Cloud Stream, Kafka, Debezium and PostgreSQL
 #### ✅ Retryable Exceptions and Dead-Letter Queue Error Channel with Spring Cloud Stream
